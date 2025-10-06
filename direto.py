@@ -7,6 +7,8 @@ import pytz
 from collections import deque, Counter
 import json
 import urllib.parse
+from keep_alive import keep_alive
+
 
 # --- CONFIGURAÇÕES GLOBAIS ---
 TOKEN = '8390745428:AAHX5Iaahc3AKPVFxYCl7-EQvzSeiivuuvI' # GRUPO DO Bot do botlittle
@@ -67,7 +69,6 @@ FICHAS_MINIMAS = {
     "Mega Roulette": 0.50,
     "Auto Mega Roulette": 0.50,
     "Korean Roulette": 0.50,
-
 }
 
 MESAS_PROVEDORES = {
@@ -77,7 +78,6 @@ MESAS_PROVEDORES = {
     "Mega Roulette": "Pragmatic",
     "Auto Mega Roulette": "Pragmatic",
     "Korean Roulette": "Pragmatic",
-
 }
 
 PROVEDORES_BLOQUEADOS = ["EVOLUTION"]
@@ -447,11 +447,34 @@ def monitorar_sinais_ativos():
                                 TOTAL_PERDA_RED += perda
                                 print(f"[FINANCEIRO] RED: -R${perda:.2f} | Nova Banca: R${BANCA_ATUAL:.2f}")
 
+                                # NOVO: Checagem de zeramento com parada total
                                 if BANCA_ATUAL <= 0.0:
                                     BANCA_ATUAL = 0.0
                                     BANCA_ZERADA = True
                                     ENTRADAS_AO_ZERAR = estatisticas['entradas']
-                                    print(f"!!! BANCA ZERADA !!! Zerou com {ENTRADAS_AO_ZERAR} entradas.")
+                                    
+                                    # Mensagem de alerta crítico
+                                    mensagem_zerou = (
+                                        "🚨🚨🚨 ALERTA CRÍTICO 🚨🚨🚨\n"
+                                        "============================\n"
+                                        "💥 BANCA ZERADA! 💥\n"
+                                        "============================\n\n"
+                                        f"📊 Total de entradas até zerar: {ENTRADAS_AO_ZERAR}\n"
+                                        f"💰 Banca inicial: R${BANCA_INICIAL:.2f}\n"
+                                        f"📉 Prejuízo total: R${TOTAL_PERDA_RED - TOTAL_LUCRO_GREEN:.2f}\n\n"
+                                        "🛑 BOT PAUSADO AUTOMATICAMENTE!\n"
+                                        "Reinicie manualmente para continuar operando."
+                                    )
+                                    enviar_telegram(mensagem_zerou)
+                                    
+                                    print("\n" + "="*80)
+                                    print("🚨 BANCA ZERADA! BOT PAUSADO!")
+                                    print(f"Total de entradas até zerar: {ENTRADAS_AO_ZERAR}")
+                                    print(f"Prejuízo total: R${TOTAL_PERDA_RED - TOTAL_LUCRO_GREEN:.2f}")
+                                    print("="*80 + "\n")
+                                    
+                                    # PARA O BOT COMPLETAMENTE
+                                    exit(0)
 
                             enviar_relatorio(dados_sinal, 'Red', max_tentativas=4)
 
@@ -492,6 +515,7 @@ def setup_initial_history():
             print(f"[SETUP] Erro com {nome_mesa}: {e}")
 
 # --- LOOP PRINCIPAL ---
+keep_alive()
 setup_initial_history()
 
 print("[🤖 BOT INICIADO] Padrão Trinta Self - Monitorando...")
